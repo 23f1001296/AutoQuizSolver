@@ -1,0 +1,10 @@
+flask
+requests
+playwright
+pandas
+numpy
+pdfplumber
+pytesseract
+pillow
+matplotlib
+gunicorn
