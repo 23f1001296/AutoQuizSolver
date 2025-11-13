@@ -1,6 +1,6 @@
 flask
 requests
-playwright
+beautifulsoup4
 pandas
 numpy
 pdfplumber

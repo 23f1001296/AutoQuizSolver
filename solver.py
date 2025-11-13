@@ -1,43 +1,35 @@
-import requests, re
-import pandas as pd
-from playwright.sync_api import sync_playwright
-import pdfplumber
-from io import BytesIO
-
-def extract_pdf_text(url):
-    r = requests.get(url)
-    with pdfplumber.open(BytesIO(r.content)) as pdf:
-        return "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+import requests
+from bs4 import BeautifulSoup
+import re
 
 def solve_quiz(url):
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True, args=['--no-sandbox'])
-            page = browser.new_page()
-            page.goto(url, wait_until="networkidle")
+        # Step 1: Fetch the quiz page HTML
+        res = requests.get(url, timeout=15)
+        if res.status_code != 200:
+            return {"error": f"Failed to fetch quiz page: {res.status_code}"}
 
-            text = page.inner_text("body")
-            links = [a.get_attribute("href") for a in page.query_selector_all("a") if a.get_attribute("href")]
+        html = res.text
+        soup = BeautifulSoup(html, "html.parser")
 
-            data_link = next((l for l in links if l.lower().endswith(('.csv', '.pdf'))), None)
-            submit_url = next((l for l in links if "submit" in l), None)
+        # Step 2: Extract visible text (for debugging)
+        question_text = soup.get_text(separator="\n")
+        print("Question snippet:", question_text[:200])  # Optional for debugging
 
-            if data_link and data_link.endswith(".csv"):
-                df = pd.read_csv(data_link)
-                if "value" in df.columns:
-                    answer = int(df["value"].sum())
-                else:
-                    numeric_cols = df.select_dtypes(include='number').columns
-                    answer = int(df[numeric_cols[0]].sum()) if len(numeric_cols) else None
-            elif data_link and data_link.endswith(".pdf"):
-                pdf_text = extract_pdf_text(data_link)
-                numbers = [int(x) for x in re.findall(r"\d+", pdf_text)]
-                answer = sum(numbers)
-            else:
-                match = re.search(r"(\d+)", text)
-                answer = int(match.group(1)) if match else 0
+        # Step 3: Dummy solving logic (update later for real quiz)
+        answer = 0
 
-            browser.close()
-            return {"answer": answer, "submit_url": submit_url}
+        # Step 4: Try to find submit URL (either <form action> or link)
+        submit_url = None
+        form = soup.find("form")
+        if form and form.get("action"):
+            submit_url = form["action"]
+        else:
+            possible = re.findall(r'https?://[^\s"]+/submit', html)
+            if possible:
+                submit_url = possible[0]
+
+        return {"answer": answer, "submit_url": submit_url}
+
     except Exception as e:
         return {"error": str(e)}
