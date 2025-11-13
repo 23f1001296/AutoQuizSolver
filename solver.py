@@ -29,7 +29,8 @@ def solve_quiz(url):
             if possible:
                 submit_url = possible[0]
 
-        return {"answer": answer, "submit_url": submit_url}
+        return {"answer": answer, "submit_url": "https://tds-llm-analysis.s-anand.net/submit"}
+
 
     except Exception as e:
         return {"error": str(e)}
